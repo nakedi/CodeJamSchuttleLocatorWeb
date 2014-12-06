@@ -6,6 +6,8 @@ var serviceLocation = "http://192.168.1.104:8080";
 var SHURTLE_ON_ROUTE_SERVICE = "/locations";
 var SHURTLE_ROUTE_SERVICE = "/getRoutes";
 
+var SHUTTLE_LOCATION_UPDATE_SERVICE = "/locationUpdate";
+
 var serviceResponse;
 
 
@@ -29,6 +31,13 @@ function getRoutes(){
   var result = callService(serviceLocation,SHURTLE_ROUTE_SERVICE,null);
   return serviceResponse;
 }
+
+
+function getLocationUpdate(){
+  var result = callService(serviceLocation,SHUTTLE_LOCATION_UPDATE_SERVICE,null);
+  return serviceResponse;
+}
+
 
 function callService(serviceUrl,service,parameters) {
   var client = getPrepareRequest(service);
