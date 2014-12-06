@@ -23,9 +23,12 @@ CoordMapType.prototype.alt = "Tile Coordinate Map Type";
 var map;
 var johannesburg = new google.maps.LatLng(-26.1215, 28.20);
 var coordinateMapType = new CoordMapType();
+var chosenRoute = "2";
+var markerIconMap;
 
 
 function initialize() {
+  $.ajaxPrefilter( "json script", function( options ) { options.crossDomain = true; });
 
   getShutlesOnRoute("2");
   var mapOptions = {
@@ -37,6 +40,7 @@ function initialize() {
 
   var map = new google.maps.Map(document.getElementById('map-canvas'),
     mapOptions);
+
   map.setTilt(45);
   map.setHeading(90);
 
@@ -44,46 +48,50 @@ function initialize() {
   var carMarkerImage = 'app/images/icons/limo-icon.png';
 
 
-  //var returnedRoutes = gJSON.parse(etRoutes());
+  var returnedRoutes = JSON.parse(getRoutes().responseData);
+  var routeLocationDetails;
+  var marker;
 
-  var marker = new google.maps.Marker({
-    position: johannesburg,
-    map: map,
-    icon: markerImage,
-    draggable: false,
-    animation: google.maps.Animation.DROP,
-    title: "5 Simmons Street",
+  for(var index = 0 ; index < returnedRoutes.length ; index ++  ){
+    routeLocationDetails = new RouteLocationDetails(null,returnedRoutes[index].startPosition,returnedRoutes[index].routeName);
+    marker = location(routeLocationDetails);
+    marker.setMap(map);
+    google.maps.event.addListener(marker, 'click', toggleBounce);
 
-    // This marker is 20 pixels wide by 32 pixels tall.
-    size: new google.maps.Size(20, 32),
-    // The origin for this image is 0,0.
-    origin: new google.maps.Point(0, 0),
-    // The anchor for this image is the base of the flagpole at 0,32.
-    anchor: new google.maps.Point(0, 32),
-    scaledSize: new google.maps.Size(25, 25)
-  });
+    routeLocationDetails = new RouteLocationDetails(null,returnedRoutes[index].endPosition,returnedRoutes[index].routeName);
+    marker = location(routeLocationDetails);
+    marker.setMap(map);
+    google.maps.event.addListener(marker, 'click', toggleBounce);
 
+  }
 
-  var carMarker = new google.maps.Marker({
-    position: new google.maps.LatLng(-26.1215, 28.201),
-    map: map,
-    icon: carMarkerImage,
-    draggable: false,
-    animation: google.maps.Animation.DROP,
-    title: "5 Simmons Street",
+  var shutlesOnRoute = JSON.parse(getShutlesOnRoute(chosenRoute).responseData);
+  var shutlesOnRouterouteDetails;
+  var marker;
+  markerIconMap = [];
+  for(var index = 0 ; index < shutlesOnRoute.length ; index ++  ){
+    shutlesOnRouterouteDetails = new CarLocationDetails(shutlesOnRoute[index].id,shutlesOnRoute[index].latestLocation.location,shutlesOnRoute[index].shuttleName);
+    marker = location(shutlesOnRouterouteDetails);
+    marker.setMap(map);
+    markerIconMap.push(new MarkerIconMap(shutlesOnRoute[index].id,marker));
 
-    // This marker is 20 pixels wide by 32 pixels tall.
-    size: new google.maps.Size(20, 32),
-    // The origin for this image is 0,0.
-    origin: new google.maps.Point(0, 0),
-    // The anchor for this image is the base of the flagpole at 0,32.
-    anchor: new google.maps.Point(0, 32),
-    scaledSize: new google.maps.Size(25, 25)
-  });
+    google.maps.event.addListener(marker, 'click', toggleBounce);
 
-  marker.setMap(map);
-  carMarker.setMap(map);
-  google.maps.event.addListener(marker, 'click', toggleBounce);
+  }
+
+  setInterval(function() {
+      var shutlesOnRoute = JSON.parse(getShutlesOnRoute(chosenRoute).responseData);
+      for(var index = 0 ; index < shutlesOnRoute.length ; index ++  ){
+        var newPosition = new google.maps.LatLng(shutlesOnRoute[index].latestLocation.location.longitude,shutlesOnRoute[index].latestLocation.location.latitude);
+        for(var markerIndex = 0; markerIndex < markerIconMap.length; markerIndex++) {
+          if(markerIconMap[markerIndex].id == shutlesOnRoute[index].id) {
+            markerIconMap[markerIndex].marker.setPosition(newPosition);
+            continue;
+          }
+        }
+      }
+
+    }, 3000);
 
   //detectBrowser();
 }
@@ -110,8 +118,9 @@ function toggleBounce() {
   }
 }
 
-function carLocationDetails(position, description) {
-  this.position = position;
+function CarLocationDetails(id,position, description) {
+  this.id = id;
+  this.position = new google.maps.LatLng(position.longitude,position.latitude);
   this.icon = 'app/images/icons/limo-icon.png';
   this.draggable = false;
   this.animation = google.maps.Animation.DROP;
@@ -123,9 +132,10 @@ function carLocationDetails(position, description) {
   this.scaledSize = new google.maps.Size(25, 25);
 }
 
-function routeLocationDetails(position, description) {
-  this.position = position;
-  this.icon = markerImage;
+function RouteLocationDetails(id,position, description) {
+  this.id = id;
+  this.position = new google.maps.LatLng(position.longitude,position.latitude);;
+  this.icon = 'app/images/icons/picture-18.png';
   this.draggable = false;
   this.animation = google.maps.Animation.DROP;
   this.title = description;
@@ -134,6 +144,33 @@ function routeLocationDetails(position, description) {
   this.origin = new google.maps.Point(0, 0);
   this.anchor = new google.maps.Point(0, 32);
   this.scaledSize = new google.maps.Size(25, 25);
+}
+
+function location(routeLocationDetails ){
+  var marker = new google.maps.Marker({
+    position: routeLocationDetails.position,
+    map: map,
+    icon: routeLocationDetails.icon,
+    draggable: routeLocationDetails.draggable,
+    animation: routeLocationDetails.animation,
+    title: routeLocationDetails.title,
+
+    // This marker is 20 pixels wide by 32 pixels tall.
+    size: routeLocationDetails.size,
+    // The origin for this image is 0,0.
+    origin: routeLocationDetails.origin,
+    // The anchor for this image is the base of the flagpole at 0,32.
+    anchor: routeLocationDetails.anchor,
+    scaledSize: routeLocationDetails.scaledSize
+  });
+
+  return marker;
+}
+
+function MarkerIconMap(id,marker){
+  this.id = id;
+  this.marker = marker;
+
 }
 
 google.maps.event.addDomListener(window, 'load', initialize);

@@ -12,13 +12,19 @@ var serviceResponse;
 function hello(){
   alert("HELLO");
 }
+
+/*
+  Service : getShutlesOnRoute
+ */
 function getShutlesOnRoute(routeId){
   var params = routeId;
   var result = callService(serviceLocation,SHURTLE_ON_ROUTE_SERVICE,params);
   return serviceResponse;
 }
 
-
+/*
+ Service : getRoutes
+ */
 function getRoutes(){
   var result = callService(serviceLocation,SHURTLE_ROUTE_SERVICE,null);
   return serviceResponse;
@@ -26,7 +32,11 @@ function getRoutes(){
 
 function callService(serviceUrl,service,parameters) {
   var client = getPrepareRequest(service);
-  client.open("PUT", serviceUrl+service+"/"+parameters, false);
+  var parameterConcat = "";
+  if(parameters != null){
+    parameterConcat = "/"+parameters;
+  }
+  client.open("PUT", serviceUrl+service+parameterConcat, false);
   client.send(null);
   if (client.status == 200) {
     //alert("The request succeeded!\n\nThe response representation was:\n\n" + client.responseText)
@@ -66,7 +76,6 @@ function getPrepareRequest(service){
     // Request successful, read the response
     var resp = req.responseText;
     // ... and use it as needed by your app.
-    alert(" getShutlesOnRoute result JSON : "+ JSON.parse(resp));
     serviceResponse = new ServiceResponse(service,resp);
     //alert("callback method response : " + resp);
   }
